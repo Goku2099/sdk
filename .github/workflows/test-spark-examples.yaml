@@ -76,20 +76,24 @@ jobs:
         timeout-minutes: 5
 
       - name: Run batch lifecycle example only
-        run: |
-          uv run pytest \
-            test/e2e/spark/test_spark_examples.py \
-            -k batch_job_lifecycle \
-            -v \
-            -s \
-            --tb=long
         env:
           SPARK_TEST_CLUSTER: spark-test
           SPARK_TEST_NAMESPACE: spark-test
           SPARK_E2E_DEBUG: "1"
           SPARK_E2E_RUN_IN_CLUSTER: "1"
           SPARK_E2E_RUNNER_IMAGE: spark-e2e-runner:local
+        run: uv run pytest test/e2e/spark/test_spark_examples.py -k batch_job_lifecycle -v -s --tb=long
         timeout-minutes: 4
+
+      - name: Debug environment
+        run: |
+          echo "SPARK_TEST_CLUSTER=$SPARK_TEST_CLUSTER"
+          echo "SPARK_TEST_NAMESPACE=$SPARK_TEST_NAMESPACE"
+          echo "SPARK_E2E_RUN_IN_CLUSTER=$SPARK_E2E_RUN_IN_CLUSTER"
+        env:
+          SPARK_TEST_CLUSTER: spark-test
+          SPARK_TEST_NAMESPACE: spark-test
+          SPARK_E2E_RUN_IN_CLUSTER: "1"
 
       - name: Collect logs on failure
         if: failure()
