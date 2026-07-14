@@ -83,7 +83,7 @@ jobs:
           SPARK_E2E_RUN_IN_CLUSTER: "1"
           SPARK_E2E_RUNNER_IMAGE: spark-e2e-runner:local
         run: uv run pytest test/e2e/spark/test_spark_examples.py -k batch_job_lifecycle -v -s --tb=long
-        timeout-minutes: 8
+        timeout-minutes: 3
 
       - name: Debug environment
         run: |
@@ -105,27 +105,9 @@ jobs:
 
           echo
           echo "=================================================================="
-          echo "Runner Job Pods"
+          echo "Jobs"
           echo "=================================================================="
-          kubectl get pods -n spark-test -l job-name=spark-e2e-batch-job-lifecycle -o wide || true
-
-          for pod in $(kubectl get pods -n spark-test -l job-name=spark-e2e-batch-job-lifecycle -o jsonpath='{.items[*].metadata.name}'); do
-            echo
-            echo "=================================================================="
-            echo "Runner Pod: $pod"
-            echo "=================================================================="
-
-            echo "--- Describe ---"
-            kubectl describe pod "$pod" -n spark-test || true
-
-            echo
-            echo "--- Logs ---"
-            kubectl logs "$pod" -n spark-test --all-containers=true || true
-
-            echo
-            echo "--- Previous Logs ---"
-            kubectl logs "$pod" -n spark-test --previous --all-containers=true || true
-          done
+          kubectl get jobs -A || true
 
           echo
           echo "=================================================================="
@@ -137,30 +119,7 @@ jobs:
           echo "=================================================================="
           echo "SparkApplication YAML"
           echo "=================================================================="
-          for app in $(kubectl get sparkapplications -A -o jsonpath='{range .items[*]}{.metadata.namespace}{"/"}{.metadata.name}{" "}{end}'); do
-            ns="${app%/*}"
-            name="${app#*/}"
-
-            echo
-            echo "===== $ns/$name ====="
-            kubectl get sparkapplication "$name" -n "$ns" -o yaml || true
-
-            echo
-            echo "----- Describe -----"
-            kubectl describe sparkapplication "$name" -n "$ns" || true
-          done
-
-          echo
-          echo "=================================================================="
-          echo "SparkConnect"
-          echo "=================================================================="
-          kubectl get sparkconnect -A || true
-
-          echo
-          echo "=================================================================="
-          echo "PVCs"
-          echo "=================================================================="
-          kubectl get pvc -A || true
+          kubectl get sparkapplications -A -o yaml || true
 
           echo
           echo "=================================================================="
@@ -170,9 +129,9 @@ jobs:
 
           echo
           echo "=================================================================="
-          echo "Spark Operator Pods"
+          echo "PVCs"
           echo "=================================================================="
-          kubectl get pods -n spark-operator -o wide || true
+          kubectl get pvc -A || true
 
           echo
           echo "=================================================================="
@@ -186,19 +145,38 @@ jobs:
 
           echo
           echo "=================================================================="
-          echo "Spark Driver Pods"
+          echo "ALL spark-test POD DETAILS"
           echo "=================================================================="
-          kubectl get pods -n spark-test -l spark-role=driver -o wide || true
 
-          for pod in $(kubectl get pods -n spark-test -l spark-role=driver -o jsonpath='{.items[*].metadata.name}'); do
-            echo
-            echo "===== Driver: $pod ====="
+          for pod in $(kubectl get pods -n spark-test -o jsonpath='{.items[*].metadata.name}'); do
 
             echo
-            echo "--- Describe ---"
+            echo "############################################################"
+            echo "POD: $pod"
+            echo "############################################################"
+
+            echo
+            echo "----- Describe -----"
             kubectl describe pod "$pod" -n spark-test || true
 
             echo
-            echo "--- Logs ---"
-            kubectl logs "$pod" -n spark-test --all-containers=true --tail=500 || true
+            echo "----- Current Logs -----"
+            kubectl logs "$pod" -n spark-test --all-containers=true || true
+
+            echo
+            echo "----- Previous Logs -----"
+            kubectl logs "$pod" -n spark-test --previous --all-containers=true || true
+
           done
+
+          echo
+          echo "=================================================================="
+          echo "Runner Job YAML"
+          echo "=================================================================="
+          kubectl get jobs -n spark-test -o yaml || true
+
+          echo
+          echo "=================================================================="
+          echo "Runner Pod YAML"
+          echo "=================================================================="
+          kubectl get pods -n spark-test -o yaml || true
