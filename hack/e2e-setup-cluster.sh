@@ -276,7 +276,7 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["pods", "pods/log", "services", "configmaps", "persistentvolumeclaims"]
-    verbs: ["get", "list", "watch", "create", "delete", "deletecollection" "patch", "update"]
+    verbs: ["get", "list", "watch", "create", "delete", "deletecollection", "patch", "update"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
