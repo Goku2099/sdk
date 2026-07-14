@@ -275,8 +275,11 @@ metadata:
   namespace: $NAMESPACE
 rules:
   - apiGroups: [""]
-    resources: ["pods", "pods/log", "services", "configmaps", "persistentvolumeclaims"]
+    resources: ["pods", "services", "configmaps", "persistentvolumeclaims"]
     verbs: ["get", "list", "watch", "create", "delete", "deletecollection", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
