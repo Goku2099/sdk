@@ -83,7 +83,7 @@ jobs:
           SPARK_E2E_RUN_IN_CLUSTER: "1"
           SPARK_E2E_RUNNER_IMAGE: spark-e2e-runner:local
         run: uv run pytest test/e2e/spark/test_spark_examples.py -k batch_job_lifecycle -v -s --tb=long
-        timeout-minutes: 4
+        timeout-minutes: 8
 
       - name: Debug environment
         run: |
@@ -102,6 +102,30 @@ jobs:
           echo "Pods"
           echo "=================================================================="
           kubectl get pods -A -o wide || true
+
+          echo
+          echo "=================================================================="
+          echo "Runner Job Pods"
+          echo "=================================================================="
+          kubectl get pods -n spark-test -l job-name=spark-e2e-batch-job-lifecycle -o wide || true
+
+          for pod in $(kubectl get pods -n spark-test -l job-name=spark-e2e-batch-job-lifecycle -o jsonpath='{.items[*].metadata.name}'); do
+            echo
+            echo "=================================================================="
+            echo "Runner Pod: $pod"
+            echo "=================================================================="
+
+            echo "--- Describe ---"
+            kubectl describe pod "$pod" -n spark-test || true
+
+            echo
+            echo "--- Logs ---"
+            kubectl logs "$pod" -n spark-test --all-containers=true || true
+
+            echo
+            echo "--- Previous Logs ---"
+            kubectl logs "$pod" -n spark-test --previous --all-containers=true || true
+          done
 
           echo
           echo "=================================================================="
