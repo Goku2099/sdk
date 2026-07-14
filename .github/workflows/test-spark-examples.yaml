@@ -180,3 +180,23 @@ jobs:
           echo "Runner Pod YAML"
           echo "=================================================================="
           kubectl get pods -n spark-test -o yaml || true
+
+          echo
+          echo "=================================================================="
+          echo "Runner Job Logs"
+          echo "=================================================================="
+
+          kubectl get pods -n spark-test -l job-name=spark-e2e-batch-job-lifecycle -o wide || true
+
+          for pod in $(kubectl get pods -n spark-test -l job-name=spark-e2e-batch-job-lifecycle -o jsonpath='{.items[*].metadata.name}'); do
+            echo
+            echo "===== Runner: $pod ====="
+
+            echo
+            echo "--- Describe ---"
+            kubectl describe pod "$pod" -n spark-test || true
+
+            echo
+            echo "--- Logs ---"
+            kubectl logs "$pod" -n spark-test --all-containers=true --tail=500 || true
+          done
