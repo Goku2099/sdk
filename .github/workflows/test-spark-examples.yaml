@@ -75,15 +75,20 @@ jobs:
           kind load docker-image spark-e2e-runner:local --name spark-test
         timeout-minutes: 5
 
-      - name: Run batch lifecycle example only
+      - name: Run Spark example E2E tests
         env:
           SPARK_TEST_CLUSTER: spark-test
           SPARK_TEST_NAMESPACE: spark-test
           SPARK_E2E_DEBUG: "1"
           SPARK_E2E_RUN_IN_CLUSTER: "1"
           SPARK_E2E_RUNNER_IMAGE: spark-e2e-runner:local
-        run: uv run pytest test/e2e/spark/test_spark_examples.py -k batch_job_lifecycle -v -s --tb=long
-        timeout-minutes: 3
+        run: |
+          uv run pytest \
+            test/e2e/spark/test_spark_examples.py \
+            -v \
+            -s \
+            --tb=long
+        timeout-minutes: 20
 
       - name: Debug environment
         run: |
