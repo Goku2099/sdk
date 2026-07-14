@@ -275,8 +275,8 @@ metadata:
   namespace: $NAMESPACE
 rules:
   - apiGroups: [""]
-    resources: ["pods", "services", "configmaps"]
-    verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
+    resources: ["pods", "pods/log", "services", "configmaps", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create", "delete", "deletecollection" "patch", "update"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -301,6 +301,9 @@ metadata:
 rules:
   - apiGroups: ["sparkoperator.k8s.io"]
     resources: ["sparkconnects", "sparkconnects/status"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["sparkoperator.k8s.io"]
+    resources: ["sparkapplications", "sparkapplications/status"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
