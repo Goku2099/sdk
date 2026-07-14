@@ -95,7 +95,7 @@ def read_pod_logs(
         raise TimeoutError("Timeout while retrieving pod logs.") from e
 
     except Exception as e:
-        raise RuntimeError("Failed to retrieve pod logs.") from e
+        raise RuntimeError(f"Failed to retrieve pod logs: {e}") from e
 
 
 def _resolve_driver_resources(

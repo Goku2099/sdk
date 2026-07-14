@@ -1027,5 +1027,5 @@ class KubernetesBackend(RuntimeBackend):
             raise RuntimeError(
                 f"Failed to get logs for "
                 f"{constants.SPARK_APPLICATION_KIND}: "
-                f"{self.namespace}/{name}"
+                f"{self.namespace}/{name} :{e}"
             ) from e
