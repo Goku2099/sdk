@@ -753,7 +753,9 @@ class TestBuildSparkApplicationCr:
         assert app.metadata.name == "test-job"
         assert app.metadata.namespace == "default"
 
+        assert app.spec.type == "Python"
         assert app.spec.main_application_file == "s3://bucket/job.py"
+        assert app.spec.main_class is None
         assert app.spec.arguments == ["--date", "2026-06-30"]
 
         assert app.spec.driver.cores == 1
@@ -764,6 +766,22 @@ class TestBuildSparkApplicationCr:
         assert app.spec.executor.instances == 3
         assert app.spec.executor.cores == 2
         assert app.spec.executor.memory == _memory_kubernetes_to_spark("4Gi")
+
+    def test_jar_job_with_main_class(self):
+        app = build_spark_application_cr(
+            name="jar-job",
+            namespace="default",
+            main_file="s3a://bucket/app.jar",
+            arguments=["--input", "s3a://bucket/data"],
+            main_class="org.apache.spark.examples.SparkPi",
+            num_executors=2,
+        )
+
+        assert app.spec.type == "Java"
+        assert app.spec.main_application_file == "s3a://bucket/app.jar"
+        assert app.spec.main_class == "org.apache.spark.examples.SparkPi"
+        assert app.spec.arguments == ["--input", "s3a://bucket/data"]
+        assert app.spec.executor.instances == 2
 
 
 class TestGetSparkApplicationInfoFromCr:

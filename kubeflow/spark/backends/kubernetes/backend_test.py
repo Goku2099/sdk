@@ -924,6 +924,48 @@ def test_extract_name_option(kubernetes_backend, test_case):
             },
             expected_error=ValueError,
         ),
+        TestCase(
+            name="valid jar file job",
+            expected_status=SUCCESS,
+            config={
+                "job": FileJob(
+                    file_source="s3a://bucket/app.jar",
+                    main_class="org.apache.spark.examples.SparkPi",
+                ),
+            },
+        ),
+        TestCase(
+            name="jar file job without main class",
+            expected_status=FAILED,
+            config={
+                "job": FileJob(
+                    file_source="s3a://bucket/app.jar",
+                ),
+            },
+            expected_error=ValueError,
+        ),
+        TestCase(
+            name="python file job with main class",
+            expected_status=FAILED,
+            config={
+                "job": FileJob(
+                    file_source="s3a://bucket/job.py",
+                    main_class="org.apache.spark.examples.SparkPi",
+                ),
+            },
+            expected_error=ValueError,
+        ),
+        TestCase(
+            name="empty main class",
+            expected_status=FAILED,
+            config={
+                "job": FileJob(
+                    file_source="s3a://bucket/app.jar",
+                    main_class="   ",
+                ),
+            },
+            expected_error=ValueError,
+        ),
     ],
 )
 def test_validate_file_job(kubernetes_backend, test_case):
@@ -1002,6 +1044,17 @@ def test_validate_job(kubernetes_backend, test_case):
                 "job": FileJob(
                     file_source="s3://bucket/job.py",
                     args=["--date", "2026-06-30"],
+                ),
+            },
+        ),
+        TestCase(
+            name="valid jar file submission",
+            expected_status=SUCCESS,
+            config={
+                "job": FileJob(
+                    file_source="s3a://bucket/app.jar",
+                    main_class="org.apache.spark.examples.SparkPi",
+                    args=["10"],
                 ),
             },
         ),

@@ -685,8 +685,19 @@ class KubernetesBackend(RuntimeBackend):
             if not all(isinstance(arg, str) for arg in job.args):
                 raise ValueError("All `job.args` must be strings.")
 
-        if job.main_class is not None and not isinstance(job.main_class, str):
-            raise ValueError("`job.main_class` must be a string.")
+        if job.main_class is not None:
+            if not isinstance(job.main_class, str) or not job.main_class.strip():
+                raise ValueError("`job.main_class` must be a non-empty string.")
+
+        file_source_path = job.file_source.split("?", 1)[0].rstrip("/")
+        is_python_source = file_source_path.lower().endswith((".py", ".python"))
+        is_jar_source = file_source_path.lower().endswith(".jar")
+
+        if job.main_class is not None and is_python_source:
+            raise ValueError("`job.main_class` is not supported for Python applications.")
+
+        if is_jar_source and job.main_class is None:
+            raise ValueError("`job.main_class` is required when submitting a jar application.")
 
     def submit_job(
         self,
@@ -735,6 +746,7 @@ class KubernetesBackend(RuntimeBackend):
             arguments=job.args,
             num_executors=num_executors,
             resources_per_executor=resources_per_executor,
+            main_class=job.main_class,
         )
 
         try:

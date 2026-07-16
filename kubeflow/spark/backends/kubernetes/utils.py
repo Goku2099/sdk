@@ -618,6 +618,7 @@ def build_spark_application_cr(
     arguments: list[str] | None = None,
     num_executors: int | None = None,
     resources_per_executor: dict[str, str] | None = None,
+    main_class: str | None = None,
 ) -> models.SparkV1beta2SparkApplication:
     """Build a SparkApplication custom resource.
 
@@ -628,6 +629,7 @@ def build_spark_application_cr(
         arguments: Command-line arguments.
         num_executors: Number of executor instances.
         resources_per_executor: Resource requirements for each executor.
+        main_class: Optional JVM main class. When set, the application type is Java.
 
     Returns:
         SparkApplication custom resource model.
@@ -636,6 +638,7 @@ def build_spark_application_cr(
         ValueError:
             If the executor resource configuration is invalid.
     """
+    application_type = "Java" if main_class else "Python"
     return models.SparkV1beta2SparkApplication(
         api_version=f"{constants.SPARK_APPLICATION_GROUP}/{constants.SPARK_APPLICATION_VERSION}",
         kind=constants.SPARK_APPLICATION_KIND,
@@ -645,10 +648,11 @@ def build_spark_application_cr(
         ),
         spec=models.SparkV1beta2SparkApplicationSpec(
             spark_version=constants.DEFAULT_SPARK_VERSION,
-            type="Python",
+            type=application_type,
             mode="cluster",
             image=constants.DEFAULT_SPARK_IMAGE,
             main_application_file=main_file,
+            main_class=main_class,
             arguments=arguments or None,
             driver=get_spark_job_driver_spec(),
             executor=get_spark_job_executor_spec(
