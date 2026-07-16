@@ -4,13 +4,16 @@ End-to-end tests that validate Spark examples execute correctly with Kubernetes 
 
 ## Test Files
 
-### **test_spark_examples.py** (3 tests)
+### **test_spark_examples.py**
 
 Validates that Spark example scripts execute successfully:
 
 - `test_spark_connect_simple_example` - Validates spark_connect_simple.py runs without errors
 - `test_spark_advanced_options_example` - Validates spark_advanced_options.py runs without errors
-- `test_demo_existing_sparkconnect_example` - Validates demo_existing_sparkconnect.py structure (SKIPPED - requires manual port-forward)
+- `test_connect_existing_session_example` - Validates connect_existing_session.py (in-cluster)
+- `test_batch_job_lifecycle_example` - Validates batch_job_lifecycle.py
+- `test_batch_failed_job_example` - Validates batch_failed_job.py
+- `test_batch_job_filesystem_uris_example` - Validates `s3a://` / `gs://` / `hdfs://` batch submission (skipped unless URI env vars are set)
 
 ## Prerequisites
 
@@ -51,6 +54,19 @@ Tests use the following configuration:
 - **Namespace**: `spark-test` (via `SPARK_TEST_NAMESPACE` env var)
 
 These are set automatically by the GitHub Actions workflow.
+
+### Filesystem URI batch jobs (optional)
+
+`test_batch_job_filesystem_uris_example` is skipped unless at least one URI is provided:
+
+```bash
+export SPARK_E2E_S3A_URI="s3a://bucket/path/job.py"
+export SPARK_E2E_GS_URI="gs://bucket/path/job.py"
+export SPARK_E2E_HDFS_URI="hdfs://namenode:8020/path/job.py"
+```
+
+The Spark runtime image must already be configured for the target filesystem. Phase 1
+`submit_job` does not yet accept per-job `spark_conf` for credentials/endpoints.
 
 ## Troubleshooting
 

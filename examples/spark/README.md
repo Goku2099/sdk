@@ -8,6 +8,9 @@ This directory contains examples for using the Kubeflow Spark SDK.
 - **spark_advanced_options.py** - Advanced configuration with Driver/Executor objects
 - **demo_existing_sparkconnect.py** - Connect to existing SparkConnect cluster
 - **test_connect_url.py** - Test URL-based connection to Spark Connect
+- **batch_job_lifecycle.py** - Submit and manage SparkApplication batch jobs
+- **batch_failed_job.py** - Observe failed SparkApplication batch jobs
+- **batch_job_filesystem_uris.py** - Submit batch jobs via `s3a://`, `gs://`, or `hdfs://` URIs
 
 ## Prerequisites
 

@@ -765,6 +765,27 @@ class TestBuildSparkApplicationCr:
         assert app.spec.executor.cores == 2
         assert app.spec.executor.memory == _memory_kubernetes_to_spark("4Gi")
 
+    @pytest.mark.parametrize(
+        "file_source",
+        [
+            "s3a://bucket/path/job.py",
+            "gs://bucket/path/job.py",
+            "hdfs://namenode:8020/path/job.py",
+            "https://example.com/path/job.py",
+            "local:///opt/spark/work-dir/job.py",
+        ],
+    )
+    def test_filesystem_uri_schemes_preserved(self, file_source: str):
+        """Remote filesystem URIs are passed through as mainApplicationFile."""
+        app = build_spark_application_cr(
+            name="uri-job",
+            namespace="default",
+            main_file=file_source,
+        )
+
+        assert app.spec.main_application_file == file_source
+        assert app.spec.type == "Python"
+
 
 class TestGetSparkApplicationInfoFromCr:
     """Tests for get_spark_application_info_from_cr."""
