@@ -1007,7 +1007,6 @@ class KubernetesBackend(RuntimeBackend):
             )
 
         def _stream() -> Iterator[str]:
-
             try:
                 yield from read_pod_logs(
                     core_api=self.core_api,

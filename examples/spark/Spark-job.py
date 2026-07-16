@@ -19,11 +19,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
 
-spark = (
-    SparkSession.builder
-    .appName("KubeflowSparkExample")
-    .getOrCreate()
-)
+spark = SparkSession.builder.appName("KubeflowSparkExample").getOrCreate()
 
 # Create a small DataFrame
 df = spark.range(10).withColumn("square", col("id") * col("id"))
