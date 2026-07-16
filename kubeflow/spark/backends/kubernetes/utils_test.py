@@ -515,7 +515,7 @@ class TestResolveDriverResources:
 
         assert cores == 2
         assert memory == "4g"
-    
+
     def test_driver_fractional_memory(self):
         """Fractional Kubernetes memory is converted to MiB."""
 
@@ -584,7 +584,7 @@ class TestResolveExecutorResources:
         assert instances == 5
         assert cores == 8
         assert memory == "16g"
-        
+
     def test_executor_fractional_memory(self):
         """Fractional executor memory is converted to MiB."""
 

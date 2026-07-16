@@ -611,7 +611,7 @@ class KubernetesBackend(RuntimeBackend):
             raise RuntimeError(
                 f"No driver pod for {constants.SPARK_CONNECT_KIND}: {self.namespace}/{name}"
             )
-            
+
         def _stream() -> Iterator[str]:
             try:
                 yield from read_pod_logs(
@@ -630,6 +630,7 @@ class KubernetesBackend(RuntimeBackend):
                 raise RuntimeError(
                     f"Failed to get logs for {constants.SPARK_CONNECT_KIND}: {self.namespace}/{name}"
                 ) from e
+
         return _stream()
 
     # ------------------------------------------------------------------
@@ -1004,7 +1005,7 @@ class KubernetesBackend(RuntimeBackend):
             raise RuntimeError(
                 f"No driver pod for {constants.SPARK_APPLICATION_KIND}: {self.namespace}/{name}"
             )
-        
+
         def _stream() -> Iterator[str]:
 
             try:
@@ -1028,4 +1029,5 @@ class KubernetesBackend(RuntimeBackend):
                     f"{constants.SPARK_APPLICATION_KIND}: "
                     f"{self.namespace}/{name}"
                 ) from e
+
         return _stream()
