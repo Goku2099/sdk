@@ -32,6 +32,8 @@ from kubeflow.spark.backends.kubernetes import constants
 from kubeflow.spark.types.types import (
     Driver,
     Executor,
+    SparkApplicationDeployMode,
+    SparkApplicationType,
     SparkConnectInfo,
     SparkConnectState,
     SparkJob,
@@ -645,8 +647,8 @@ def build_spark_application_cr(
         ),
         spec=models.SparkV1beta2SparkApplicationSpec(
             spark_version=constants.DEFAULT_SPARK_VERSION,
-            type="Python",
-            mode="cluster",
+            type=SparkApplicationType.PYTHON.value,
+            mode=SparkApplicationDeployMode.CLUSTER.value,
             image=constants.DEFAULT_SPARK_IMAGE,
             main_application_file=main_file,
             arguments=arguments or None,

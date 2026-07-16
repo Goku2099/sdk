@@ -24,6 +24,9 @@ from kubeflow.spark.types.types import (
     Executor,
     FileJob,
     FuncJob,
+    SparkApplicationDeployMode,
+    SparkApplicationState,
+    SparkApplicationType,
     SparkConnectInfo,
     SparkConnectState,
     SparkJob,
@@ -181,6 +184,44 @@ class TestExecutor:
         assert executor.resources_per_executor["nvidia.com/gpu"] == "2"
 
 
+class TestSparkApplicationEnums:
+    """Tests for Spark Operator-aligned typed enums."""
+
+    def test_application_type_values(self):
+        assert set(SparkApplicationType) == {
+            SparkApplicationType.JAVA,
+            SparkApplicationType.SCALA,
+            SparkApplicationType.PYTHON,
+            SparkApplicationType.R,
+        }
+        assert SparkApplicationType.PYTHON == "Python"
+
+    def test_deploy_mode_values(self):
+        assert SparkApplicationDeployMode.CLUSTER == "cluster"
+        assert SparkApplicationDeployMode.CLIENT == "client"
+        assert SparkApplicationDeployMode.IN_CLUSTER_CLIENT == "in-cluster-client"
+
+    def test_application_state_matches_operator_constants(self):
+        """Keep SDK enum values aligned with spark-operator ApplicationStateType."""
+        assert SparkApplicationState.NEW == ""
+        assert {state.value for state in SparkApplicationState} == {
+            "",
+            "SUBMITTED",
+            "RUNNING",
+            "COMPLETED",
+            "FAILED",
+            "SUBMISSION_FAILED",
+            "PENDING_RERUN",
+            "INVALIDATING",
+            "SUCCEEDING",
+            "FAILING",
+            "SUSPENDING",
+            "SUSPENDED",
+            "RESUMING",
+            "UNKNOWN",
+        }
+
+
 class TestSparkJobStatus:
     """Tests for SparkJobStatus enum."""
 
@@ -214,6 +255,10 @@ class TestSparkJobStatus:
             ("PENDING_RERUN", SparkJobStatus.FAILED),
             ("INVALIDATING", SparkJobStatus.FAILED),
             ("UNKNOWN", SparkJobStatus.FAILED),
+            (SparkApplicationState.SUBMITTED, SparkJobStatus.CREATED),
+            (SparkApplicationState.RUNNING, SparkJobStatus.RUNNING),
+            (SparkApplicationState.COMPLETED, SparkJobStatus.COMPLETED),
+            (SparkApplicationState.FAILED, SparkJobStatus.FAILED),
         ],
     )
     def test_from_operator_state(
@@ -223,6 +268,11 @@ class TestSparkJobStatus:
     ):
         """Verify SparkApplication states map to SparkJobStatus."""
         assert SparkJobStatus.from_operator_state(operator_state) == expected_status
+
+    def test_all_operator_states_are_mapped(self):
+        """Every SparkApplicationState must map to an SDK SparkJobStatus."""
+        for state in SparkApplicationState:
+            assert isinstance(SparkJobStatus.from_operator_state(state), SparkJobStatus)
 
     def test_unknown_operator_state(self):
         """Verify unknown SparkApplication states default to FAILED."""
