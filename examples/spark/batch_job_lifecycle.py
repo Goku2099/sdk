@@ -216,9 +216,13 @@ def example_delete_job():
 
     try:
         client.get_job(JOB_NAME)
+    except RuntimeError as e:
+        if "Spark job not found" not in str(e):
+            raise
+    else:
         raise RuntimeError("Job still exists after deletion.")
-    except RuntimeError:
-        print("Verified job has been deleted.")
+
+    print("Verified job has been deleted.")
 
     JOB_NAME = None
 

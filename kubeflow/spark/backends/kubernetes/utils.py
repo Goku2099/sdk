@@ -18,6 +18,7 @@ from collections.abc import Iterator
 import logging
 import math
 import multiprocessing
+import os
 import re
 from typing import Any
 from urllib.parse import urlparse
@@ -181,9 +182,11 @@ def _resolve_executor_resources(
 
 
 def _memory_kubernetes_to_spark(memory: str) -> str:
-    """Convert Kubernetes-style memory (e.g. 4Gi, 512Mi) to Spark/JVM style (4g, 512m).
+    """Convert Kubernetes-style memory to Spark-compatible memory.
 
-    SparkSubmit expects JVM memory suffixes (k, m, g, t); Kubernetes uses Ki, Mi, Gi, Ti.
+    Spark accepts integer memory values with JVM suffixes (k, m, g, t).
+    Kubernetes quantities may contain fractional values (e.g. 1.5Gi), so
+    these are converted to an absolute MiB value.
 
     Args:
         memory: Memory value using Kubernetes or Spark notation.
@@ -193,13 +196,47 @@ def _memory_kubernetes_to_spark(memory: str) -> str:
     """
     if not memory or not memory[-1].isalpha():
         return memory
-    m = re.match(r"^(\d+(?:\.\d+)?)\s*([KMGTPE]i?|k|m|g|t|kb|mb|gb|tb)?$", memory, re.IGNORECASE)
-    if not m:
+
+    match = re.match(
+        r"^(\d+(?:\.\d+)?)\s*([KMGTPE]i?|[kmgtp]b?)$",
+        memory,
+        re.IGNORECASE,
+    )
+    if not match:
         return memory
-    num, suffix = m.group(1), (m.group(2) or "").lower()
-    k8s_to_spark = {"ki": "k", "mi": "m", "gi": "g", "ti": "t", "pi": "p", "ei": "e"}
-    spark_suffix = k8s_to_spark.get(suffix, suffix.rstrip("b") if suffix else "")
-    return num + spark_suffix
+
+    coefficient, suffix = match.group(1), (match.group(2) or "").lower()
+
+    exponent_by_suffix = {
+        "ki": 10,
+        "k": 10,
+        "kb": 10,
+        "mi": 20,
+        "m": 20,
+        "mb": 20,
+        "gi": 30,
+        "g": 30,
+        "gb": 30,
+        "ti": 40,
+        "t": 40,
+        "tb": 40,
+        "pi": 50,
+        "p": 50,
+        "pb": 50,
+        "ei": 60,
+    }
+
+    if suffix not in exponent_by_suffix:
+        return memory
+
+    exponent = exponent_by_suffix[suffix]
+
+    spark_suffix = {10: "k", 20: "m", 30: "g", 40: "t", 50: "p"}.get(exponent)
+    if "." not in coefficient and spark_suffix is not None:
+        return coefficient + spark_suffix
+
+    total_bytes = math.ceil(float(coefficient) * (2**exponent))
+    return f"{math.ceil(total_bytes / (2**20))}m"
 
 
 def _validate_cpu_value(cpu: str | int | None) -> int:
@@ -418,8 +455,13 @@ def build_spark_connect_cr(
     # Build executor spec using conversion function
     executor_spec = get_spark_connect_executor_spec(executor, num_executors, resources_per_executor)
 
-    # Determine image (driver.image > default)
-    image = driver.image if driver and driver.image else constants.DEFAULT_SPARK_IMAGE
+    # Determine image (driver.image > SPARK_E2E_IMAGE > default)
+    default_image = os.environ.get(
+        "SPARK_E2E_IMAGE",
+        constants.DEFAULT_SPARK_IMAGE,
+    )
+
+    image = driver.image if driver and driver.image else default_image
 
     # Use direct JAR URL to avoid Ivy cache (container may not have writable ~/.ivy2)
     connect_jar_url = (
@@ -541,14 +583,12 @@ def get_spark_job_driver_spec() -> models.SparkV1beta2DriverSpec:
 
 
 def get_spark_job_executor_spec(
-    executor: Executor | None = None,
     num_executors: int | None = None,
     resources_per_executor: dict[str, str] | None = None,
 ) -> models.SparkV1beta2ExecutorSpec:
     """Build ExecutorSpec for SparkApplication.
 
     Args:
-        executor: Executor resource configuration.
         num_executors: Number of executor instances.
         resources_per_executor: Resource requirements for each executor.
 
@@ -560,9 +600,8 @@ def get_spark_job_executor_spec(
             If the configured executor resources are invalid.
     """
     instances, cores, memory = _resolve_executor_resources(
-        executor,
-        num_executors,
-        resources_per_executor,
+        num_executors=num_executors,
+        resources_per_executor=resources_per_executor,
     )
 
     return models.SparkV1beta2ExecutorSpec(
@@ -577,7 +616,6 @@ def build_spark_application_cr(
     namespace: str,
     main_file: str,
     arguments: list[str] | None = None,
-    executor: Executor | None = None,
     num_executors: int | None = None,
     resources_per_executor: dict[str, str] | None = None,
 ) -> models.SparkV1beta2SparkApplication:
@@ -588,7 +626,6 @@ def build_spark_application_cr(
         namespace: Kubernetes namespace.
         main_file: Application file path or URI.
         arguments: Command-line arguments.
-        executor: Executor resource configuration.
         num_executors: Number of executor instances.
         resources_per_executor: Resource requirements for each executor.
 
@@ -615,7 +652,6 @@ def build_spark_application_cr(
             arguments=arguments or None,
             driver=get_spark_job_driver_spec(),
             executor=get_spark_job_executor_spec(
-                executor=executor,
                 num_executors=num_executors,
                 resources_per_executor=resources_per_executor,
             ),

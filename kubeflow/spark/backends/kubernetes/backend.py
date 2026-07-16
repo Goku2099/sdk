@@ -611,24 +611,26 @@ class KubernetesBackend(RuntimeBackend):
             raise RuntimeError(
                 f"No driver pod for {constants.SPARK_CONNECT_KIND}: {self.namespace}/{name}"
             )
+            
+        def _stream() -> Iterator[str]:
+            try:
+                yield from read_pod_logs(
+                    core_api=self.core_api,
+                    namespace=self.namespace,
+                    pod_name=info.driver_pod_name,
+                    follow=follow,
+                )
 
-        try:
-            yield from read_pod_logs(
-                core_api=self.core_api,
-                namespace=self.namespace,
-                pod_name=info.driver_pod_name,
-                follow=follow,
-            )
+            except TimeoutError as e:
+                raise TimeoutError(
+                    f"Timeout to get logs for {constants.SPARK_CONNECT_KIND}: {self.namespace}/{name}"
+                ) from e
 
-        except TimeoutError as e:
-            raise TimeoutError(
-                f"Timeout to get logs for {constants.SPARK_CONNECT_KIND}: {self.namespace}/{name}"
-            ) from e
-
-        except RuntimeError as e:
-            raise RuntimeError(
-                f"Failed to get logs for {constants.SPARK_CONNECT_KIND}: {self.namespace}/{name}"
-            ) from e
+            except RuntimeError as e:
+                raise RuntimeError(
+                    f"Failed to get logs for {constants.SPARK_CONNECT_KIND}: {self.namespace}/{name}"
+                ) from e
+        return _stream()
 
     # ------------------------------------------------------------------
     # Spark batch jobs
@@ -688,7 +690,6 @@ class KubernetesBackend(RuntimeBackend):
     def submit_job(
         self,
         job: FileJob | FuncJob,
-        executor: Executor | None = None,
         num_executors: int | None = None,
         resources_per_executor: dict[str, str] | None = None,
     ) -> SparkJob:
@@ -697,9 +698,6 @@ class KubernetesBackend(RuntimeBackend):
         Args:
             job:
                 File-based Spark workload definition.
-
-            executor:
-                Executor configuration.
 
             num_executors:
                 Number of executor instances.
@@ -734,7 +732,6 @@ class KubernetesBackend(RuntimeBackend):
             namespace=self.namespace,
             main_file=job.file_source,
             arguments=job.args,
-            executor=executor,
             num_executors=num_executors,
             resources_per_executor=resources_per_executor,
         )
@@ -1007,25 +1004,28 @@ class KubernetesBackend(RuntimeBackend):
             raise RuntimeError(
                 f"No driver pod for {constants.SPARK_APPLICATION_KIND}: {self.namespace}/{name}"
             )
+        
+        def _stream() -> Iterator[str]:
 
-        try:
-            yield from read_pod_logs(
-                core_api=self.core_api,
-                namespace=self.namespace,
-                pod_name=job.driver_pod_name,
-                follow=follow,
-            )
+            try:
+                yield from read_pod_logs(
+                    core_api=self.core_api,
+                    namespace=self.namespace,
+                    pod_name=job.driver_pod_name,
+                    follow=follow,
+                )
 
-        except TimeoutError as e:
-            raise TimeoutError(
-                f"Timeout to get logs for "
-                f"{constants.SPARK_APPLICATION_KIND}: "
-                f"{self.namespace}/{name}"
-            ) from e
+            except TimeoutError as e:
+                raise TimeoutError(
+                    f"Timeout to get logs for "
+                    f"{constants.SPARK_APPLICATION_KIND}: "
+                    f"{self.namespace}/{name}"
+                ) from e
 
-        except RuntimeError as e:
-            raise RuntimeError(
-                f"Failed to get logs for "
-                f"{constants.SPARK_APPLICATION_KIND}: "
-                f"{self.namespace}/{name}"
-            ) from e
+            except RuntimeError as e:
+                raise RuntimeError(
+                    f"Failed to get logs for "
+                    f"{constants.SPARK_APPLICATION_KIND}: "
+                    f"{self.namespace}/{name}"
+                ) from e
+        return _stream()

@@ -61,6 +61,7 @@ class TestMemoryKubernetesToSpark:
             ("4g", "4g"),
             ("512m", "512m"),
             ("2G", "2g"),
+            ("1.5Gi", "1536m"),
         ],
     )
     def test_conversion(self, k8s_memory: str, expected_spark: str) -> None:
@@ -514,6 +515,21 @@ class TestResolveDriverResources:
 
         assert cores == 2
         assert memory == "4g"
+    
+    def test_driver_fractional_memory(self):
+        """Fractional Kubernetes memory is converted to MiB."""
+
+        driver = Driver(
+            resources={
+                "cpu": "2",
+                "memory": "1.5Gi",
+            },
+        )
+
+        cores, memory = _resolve_driver_resources(driver)
+
+        assert cores == 2
+        assert memory == "1536m"
 
 
 class TestResolveExecutorResources:
@@ -568,6 +584,20 @@ class TestResolveExecutorResources:
         assert instances == 5
         assert cores == 8
         assert memory == "16g"
+        
+    def test_executor_fractional_memory(self):
+        """Fractional executor memory is converted to MiB."""
+
+        instances, cores, memory = _resolve_executor_resources(
+            resources_per_executor={
+                "cpu": "2",
+                "memory": "1.5Gi",
+            },
+        )
+
+        assert instances == constants.DEFAULT_NUM_EXECUTORS
+        assert cores == 2
+        assert memory == "1536m"
 
 
 class TestReadPodLogs:
