@@ -128,6 +128,7 @@ uv run pre-commit install                    # Install hooks
 uv run pre-commit run --all-files           # Run all hooks
 ```
 
+
 <!-- END: AGENT_COMMANDS -->
 
 ## Development Workflow for AI Agents
