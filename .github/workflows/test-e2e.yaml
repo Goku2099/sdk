@@ -1,6 +1,6 @@
 name: E2E Test
 
-on: pull_request
+on: push
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
